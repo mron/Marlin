@@ -131,6 +131,10 @@ Stepper stepper; // Singleton
   #include "../feature/spindle_laser.h"
 #endif
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+#define MINIMAL_STEP_RATE 10 // Do I need this? ( should be 120? )
+#endif
+
 // public:
 
 #if EITHER(HAS_EXTRA_ENDSTOPS, Z_STEPPER_AUTO_ALIGN)
@@ -145,12 +149,17 @@ Stepper stepper; // Singleton
   #endif
 #endif
 
+//
 // private:
 
 block_t* Stepper::current_block; // (= nullptr) A pointer to the block currently being traced
 
 uint8_t Stepper::last_direction_bits, // = 0
         Stepper::axis_did_move; // = 0
+
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+  FeedholdState Stepper::feed_hold_state;           // Flag to indicate feed_hold
+#endif
 
 bool Stepper::abort_current_block;
 
@@ -1807,14 +1816,36 @@ uint32_t Stepper::block_phase_isr() {
         }
       #endif
       TERN_(HAS_FILAMENT_RUNOUT_DISTANCE, runout.block_completed(current_block));
+      #if ENABLED(REALTIME_REPORTING_COMMANDS)
+        if( feed_hold_state == FH_BRAKING ){ 
+          if ( acc_step_rate == 0 ) { // If the acc_step_rate = 0, we've stopped
+            // Immediately lock out new command to queue until it's saved
+            // and sd printing is stopped
+            suspend();
+            feedhold_holding() ; // call motion.cpp 
+            //feed_hold_state = FH_HOLDING;
+          } else {
+            // Otherwise, we've finished a block, but haven't reached 0 velocity
+            // so override the block acceleration and keep braking
+            feed_hold_state = FH_START ;
+          }
+        }
+      #endif
       discard_current_block();
     }
     else {
       // Step events not completed yet...
-
       // Are we in acceleration phase ?
+     #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      // Check feed_hold_state. If it's FH_HOLDING, then we were holding, but now there's
+      // a new block. This can only have come from the planner telling us to go, so release
+      // the feed_hold
+      if( feed_hold_state == FH_HOLDING ) release_feed_hold() ;
+      
+      if ( feed_hold_state == FH_IDLE && step_events_completed <= accelerate_until) { // Calculate new timer value
+      #else
       if (step_events_completed <= accelerate_until) { // Calculate new timer value
-
+      #endif      
         #if ENABLED(S_CURVE_ACCELERATION)
           // Get the next speed to use (Jerk limited!)
           uint32_t acc_step_rate = acceleration_time < current_block->acceleration_time
@@ -1869,7 +1900,77 @@ uint32_t Stepper::block_phase_isr() {
         #endif
       }
       // Are we in Deceleration phase ?
-      else if (step_events_completed > decelerate_after) {
+      #if ENABLED(REALTIME_REPORTING_COMMANDS)
+        else if ( feed_hold_state != FH_IDLE || step_events_completed > decelerate_after ) {
+
+          uint32_t final_rate = current_block->final_rate;
+          /* from grbl
+          // Override planner block entry speed and enforce deceleration during feed hold.
+          prep.current_speed = prep.exit_speed; 
+          pl_block->entry_speed_sqr = prep.exit_speed*prep.exit_speed; 
+          */
+          /* from grbl
+            --------------------------------------------------------------------------------- 
+              Compute the velocity profile of a new planner block based on its entry and exit
+              speeds, or recompute the profile of a partially-completed planner block if the 
+              planner has updated it. For a commanded forced-deceleration, such as from a feed 
+              hold, override the planner velocities and decelerate to the target exit speed.
+          
+            prep.mm_complete = 0.0; // Default velocity profile complete at 0.0mm from end of block.
+            float inv_2_accel = 0.5/pl_block->acceleration;
+            if (sys.state & (STATE_HOLD|STATE_MOTION_CANCEL|STATE_SAFETY_DOOR)) { // [Forced Deceleration to Zero Velocity]
+              // Compute velocity profile parameters for a feed hold in-progress. This profile overrides
+              // the planner block profile, enforcing a deceleration to zero speed.
+              prep.ramp_type = RAMP_DECEL;
+              // Compute decelerate distance relative to end of block.
+              float decel_dist = pl_block->millimeters - inv_2_accel*pl_block->entry_speed_sqr;
+              if (decel_dist < 0.0) {
+                // Deceleration through entire planner block. End of feed hold is not in this block.
+                prep.exit_speed = sqrt(pl_block->entry_speed_sqr-2*pl_block->acceleration*pl_block->millimeters);
+              } else {
+                prep.mm_complete = decel_dist; // End of feed hold.
+                prep.exit_speed = 0.0;
+              }
+          */
+          if( feed_hold_state != FH_IDLE ){ // We are in the braking process
+            if( feed_hold_state == FH_START ){ // we're overriding the block data
+              feed_hold_state = FH_BRAKING ;
+              // we're braking now
+              // TODO:  Need to find MIN of X,Y,Z max acceleration. use the lowest acceleration of the 3 axis
+              // uint32_t min_accel = _MIN(
+              //                         planner.settings.max_acceleration_mm_per_s2[A_AXIS],
+              //                         planner.settings.max_acceleration_mm_per_s2[B_AXIS]
+              //                         //planner.settings.max_acceleration_mm_per_s2[C_AXIS]
+              //                         );
+              // min_accel should min acceleration of XYZ in steps/(s^2)
+              // const float steps_per_mm = current_block->step_event_count / current_block->millimeters;
+              // current_block->acceleration_steps_per_s2 = min_accel;
+              // current_block->acceleration = min_accel / steps_per_mm;
+              // current_block->acceleration_rate = (uint32_t)(min_accel * (4096.0f * 4096.0f / (STEPPER_TIMER_RATE)));
+              
+              // Save current block buffer to restore it later.
+              // feed_hold_saved_block = *current_block ;
+              delta_error_save = delta_error;
+              advance_dividend_save = advance_dividend;
+              
+              // Cancel accelerate and cruise phase
+              accelerate_until = 0;
+              // set the deceleration point to right now.
+              decelerate_after = step_events_completed ; //This immediately starts braking
+            }
+            
+            #if ENABLED(S_CURVE_ACCELERATION)
+              // Get the next speed to use (Jerk limited!)
+              uint32_t acc_step_rate = acceleration_time < current_block->acceleration_time
+                                      ? _eval_bezier_curve(acceleration_time)
+                                      : current_block->cruise_rate;
+            #endif
+            final_rate = 0;
+            //
+          }
+      #else
+        else if (step_events_completed > decelerate_after) {
+      #endif
         uint32_t step_rate;
 
         #if ENABLED(S_CURVE_ACCELERATION)
@@ -1888,22 +1989,47 @@ uint32_t Stepper::block_phase_isr() {
               : current_block->final_rate;
           }
         #else
-
           // Using the old trapezoidal control
           step_rate = STEP_MULTIPLY(deceleration_time, current_block->acceleration_rate);
           if (step_rate < acc_step_rate) { // Still decelerating?
             step_rate = acc_step_rate - step_rate;
+                        #if ENABLED(REALTIME_REPORTING_COMMANDS)
+            NOLESS(step_rate, final_rate);
+            #else
             NOLESS(step_rate, current_block->final_rate);
+            #endif
           }
           else
+            #if ENABLED(REALTIME_REPORTING_COMMANDS)
+            step_rate = final_rate;
+            #else
             step_rate = current_block->final_rate;
+            #endif
         #endif
 
-        // step_rate is in steps/second
+        #if ENABLED(REALTIME_REPORTING_COMMANDS)
+        if ( step_rate < MINIMAL_STEP_RATE ){
+            // We're below the safe jerk to stop speed, so stop now
+            // Need to find jerk speed
+            // Stop moving
+            const bool was_enabled = suspend(); // Stop the stepper ISR
+            step_rate = 0;
+            acc_step_rate = 0;
+            feedhold_holding() ; // call motion.cpp 
+            //feed_hold_state = FH_HOLDING;
 
-        // step_rate to timer interval and steps per stepper isr
-        interval = calc_timer_interval(step_rate, &steps_per_isr);
-        deceleration_time += interval;
+            return (STEPPER_TIMER_RATE) / 1000UL ;// return a long interval
+
+          } else {
+            // step_rate to timer interval and steps per stepper isr
+            interval = calc_timer_interval(step_rate, &steps_per_isr);
+            deceleration_time += interval;
+          }
+        #else
+          // step_rate to timer interval and steps per stepper isr
+          interval = calc_timer_interval(step_rate, &steps_per_isr);
+          deceleration_time += interval;
+        #endif
 
         #if ENABLED(LIN_ADVANCE)
           if (LA_use_advance_lead) {
@@ -1947,7 +2073,6 @@ uint32_t Stepper::block_phase_isr() {
       }
       // Must be in cruise phase otherwise
       else {
-
         #if ENABLED(LIN_ADVANCE)
           // If there are any esteps, fire the next advance_isr "now"
           if (LA_steps && LA_isr_rate != current_block->advance_speed) initiateLA();
@@ -2380,7 +2505,22 @@ bool Stepper::is_block_busy(const block_t* const block) {
   return block == vnew;
 }
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+// Start the braking process
+uint32_t Stepper::feed_hold() {
+  feed_hold_state = FH_START;
+  return 0;
+}
+
+// Release the feed_hold
+void Stepper::release_feed_hold() {  feed_hold_state = FH_IDLE; }
+#endif
+
 void Stepper::init() {
+
+  #if ENABLED(REALTIME_REPORTING_COMMANDS)
+    feed_hold_state = FH_IDLE;
+  #endif
 
   #if MB(ALLIGATOR)
     const float motor_current[] = MOTOR_CURRENT;
@@ -3484,3 +3624,39 @@ void Stepper::report_positions() {
   }
 
 #endif // HAS_MICROSTEPS
+
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+
+xyze_long_t Stepper::delta_error_save;
+xyze_ulong_t Stepper::advance_dividend_save;
+
+void Stepper::feed_hold_reset_current_block(){
+//  block_t *current_block;
+  if ((current_block = planner.get_current_block())) {
+ 
+    // restore the saved block
+    // delta_error = delta_error_save;
+    // advance_dividend = advance_dividend_save;
+    // Based on the oversampling factor, do the calculations
+    // I don't think I'm losing anything here?
+    // correct the number of steps
+    current_block->step_event_count = (step_event_count - step_events_completed) >> oversampling_factor ;
+    current_block->decelerate_after -= step_events_completed >> oversampling_factor;
+    //current_block->initial_rate = 0; // we're starting at zero
+    //int32_t diff_ad = current_block->step_event_count - current_block->decelerate_after;
+    step_events_completed = 0;
+    // current_block->steps = current_block->steps - current_block->move_target; 
+    // current_block->steps = ABS(current_block->steps) ;
+
+    // current_block->steps.a = ABS( current_block->steps.a - current_block->move_target.a );
+    // current_block->steps.b = ABS( current_block->steps.b - current_block->move_target.b );
+    // current_block->steps.c = ABS( current_block->steps.c - current_block->move_target.c );
+
+    if ( current_block->decelerate_after < 0 ){
+      // M0 ended up stopping inside the decel part of the trapazoid. Ideally I should recalculate the
+      // trapazoid, but I don't know how to do that yet
+      current_block->accelerate_until = current_block->decelerate_after = 0;
+    }
+  }
+}
+#endif

@@ -29,6 +29,10 @@
 #include "stepper.h"
 #include "planner.h"
 #include "temperature.h"
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+#include "../gcode/queue.h"
+#include "../sd/cardreader.h"
+#endif
 
 #include "../gcode/gcode.h"
 
@@ -288,14 +292,61 @@ void quickstop_stepper() {
 #if ENABLED(REALTIME_REPORTING_COMMANDS)
 
   void quickpause_stepper() {
-    planner.quick_pause();
-    //planner.synchronize();
+    feedhold();
   }
 
   void quickresume_stepper() {
-    planner.quick_resume();
-    //planner.synchronize();
+    feedhold_resume();
   }
+
+  /**
+   * Stop the motion as fast as MAX_ACCEL allows
+   * 
+   */
+
+  void feedhold() {
+    #if ENABLED(SDSUPPORT)
+      // Pause the SD print now. Assume there are enough commands in the block buffer
+      // and command queue to allow the moves to stop gracefully
+      if (IS_SD_PRINTING()) card.pauseSDPrint();
+    #endif
+    planner.feedhold();
+    // if printing from a file, pause the print
+    // Set initial pause flag to prevent more commands from landing in the queue while we try to pause
+  }
+  void feedhold_holding() {
+    // Tell stepper to reset the current_block to finish the current move when restarted
+    planner.feed_hold_recalculate_current_block(); // Recalculate trapazoid to for restart
+    set_current_from_steppers_for_axis(ALL_AXES);
+
+    planner.save_block_buffer();
+    queue.save_queue();
+    destination = current_position;
+    // empty the block buffer
+    queue.clear();
+    planner.clear_block_buffer();
+    stepper.discard_current_block();
+    // release feed hold and wake up stepper
+    stepper.release_feed_hold();
+    stepper.wake_up();
+  }
+
+  void feedhold_resume() {
+    const bool was_enabled = stepper.suspend();
+    // Tell stepper to reset the current_block to finish the current move when restarted
+    
+    queue.restore_queue();
+    planner.restore_block_buffer();
+
+    if( was_enabled ) stepper.wake_up();
+
+    #if ENABLED(SDSUPPORT)
+      if (IS_SD_PAUSED()) card.resumeSDPrint();
+    #endif
+  }
+// Check to see if there is a feedhold active, I'm using the existence of a saved block buffer.
+// Might be a bad idea
+bool is_feedholding(){ return planner.block_buffer_save != NULL ; }
 
 #endif
 

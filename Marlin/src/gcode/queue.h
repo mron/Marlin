@@ -192,6 +192,26 @@ public:
    */
   static inline void set_current_line_number(long n) { serial_state[ring_buffer.command_port()].last_N = n; }
 
+  /*
+   *  Save the queue. Save all the states needed to restore it.
+   */
+  struct Queue_save {
+    uint8_t length,                 //!< Number of commands in the queue
+            index_r,                //!< Ring buffer's read position
+            index_w;                //!< Ring buffer's write position
+    CommandLine commands[BUFSIZE];  //!< The ring buffer of commands
+    SerialState serial_state[NUM_SERIAL]; // save the serial states?
+  } ;
+  
+  static Queue_save *saved_queue;
+
+  static void save_queue();
+
+ /*
+   *  Restore the queue. Restore all the states needed.
+   */
+  static void restore_queue();
+
 private:
 
   static void get_serial_commands();

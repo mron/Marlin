@@ -33,6 +33,9 @@ GCodeQueue queue;
 #include "../sd/cardreader.h"
 #include "../module/motion.h"
 #include "../module/planner.h"
+
+#include "../module/stepper.h"
+
 #include "../module/temperature.h"
 #include "../MarlinCore.h"
 #include "../core/bug_on.h"
@@ -623,6 +626,9 @@ void GCodeQueue::advance() {
   // Return if the G-code buffer is empty
   if (ring_buffer.empty()) return;
 
+  // This is for feedhold. Don't take moves if the block_buffer is full
+  TERN_( REALTIME_REPORTING_COMMANDS, if( planner.is_full() ) return ; ) 
+
   #if ENABLED(SDSUPPORT)
 
     if (card.flag.saving) {
@@ -664,3 +670,37 @@ void GCodeQueue::advance() {
   // The queue may be reset by a command handler or by code invoked by idle() within a handler
   ring_buffer.advance_pos(ring_buffer.index_r, -1);
 }
+
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+/*
+ * If REALTIME_REPORTING save the queue to allow smooth restart.
+ *  Save the queue. Save all the states needed to restore it.
+ */
+
+GCodeQueue::Queue_save * GCodeQueue::saved_queue;
+
+void GCodeQueue::save_queue(){
+  saved_queue = (Queue_save*) malloc( sizeof(Queue_save) ) ;
+  if( saved_queue == NULL ) return;
+  memcpy( saved_queue->commands, ring_buffer.commands, sizeof(CommandLine)*BUFSIZE );
+  saved_queue->index_r = ring_buffer.index_r;
+  saved_queue->index_w = ring_buffer.index_w;
+  saved_queue->length = ring_buffer.length;
+  memcpy( saved_queue->serial_state, serial_state, sizeof(SerialState)*NUM_SERIAL );
+};
+
+/*
+ *  Restore the queue. Restore all the states needed.
+ */
+void GCodeQueue::restore_queue(){
+  if ( saved_queue != NULL ) {
+    memcpy( ring_buffer.commands, saved_queue->commands, sizeof(CommandLine)*BUFSIZE );
+    ring_buffer.index_r = saved_queue->index_r ;
+    ring_buffer.index_w = saved_queue->index_w;
+    ring_buffer.length = saved_queue->length;
+    memcpy( serial_state, saved_queue->serial_state, sizeof(SerialState)*NUM_SERIAL );
+    free( saved_queue ); // free should to nothing to a null pointer, so no need to check.
+    saved_queue = NULL;
+  }
+};
+#endif

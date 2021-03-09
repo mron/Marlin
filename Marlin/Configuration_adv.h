@@ -2037,10 +2037,10 @@
  * Currently handles M108, M112, M410, M876
  * NOTE: Not yet implemented for all platforms.
  */
-//#define EMERGENCY_PARSER
+#define EMERGENCY_PARSER
 
 // Support realtime commands: S000 State, P000 Pause, R000 Resume
-//#define REALTIME_REPORTING_COMMANDS
+#define REALTIME_REPORTING_COMMANDS
 
 // Send machine status reports while moving and status reports GRBL style
 //#define FULL_REPORT_TO_HOST_FEATURE

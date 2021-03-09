@@ -202,6 +202,10 @@ typedef struct block_t {
            final_rate,                      // The minimal rate at exit
            acceleration_steps_per_s2;       // acceleration steps/sec^2
 
+  #if ENABLED(REALTIME_REPORTING_COMMANDS)
+  xyze_long_t target;                     // target of move in steps along each axis
+  #endif
+
   #if ENABLED(DIRECT_STEPPING)
     page_idx_t page_idx;                    // Page index used for direct stepping
   #endif
@@ -314,6 +318,18 @@ class Planner {
                             block_buffer_tail;      // Index of the busy block, if any
     static uint16_t cleaning_buffer_counter;        // A counter to disable queuing of blocks
     static uint8_t delay_before_delivering;         // This counter delays delivery of blocks when queue becomes empty to allow the opportunity of merging blocks
+
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      // Save block buffer states
+      static block_t (* block_buffer_save)[];
+      static volatile uint8_t block_buffer_save_head,      // Index of the next block to be pushed
+                              block_buffer_save_nonbusy,   // Index of the first non busy block
+                              block_buffer_save_planned,   // Index of the optimally planned block
+                              block_buffer_save_tail;      // Index of the busy block, if any
+      static uint16_t cleaning_buffer_counter_save;        // A counter to disable queuing of blocks
+      static xyze_pos_t saved_desitination; // Save the destination
+      static xyze_long_t saved_position; // save the position
+    #endif
 
 
     #if ENABLED(DISTINCT_E_FACTORS)
@@ -466,6 +482,13 @@ class Planner {
     static void set_max_feedrate(const uint8_t axis, float targetValue);
     static void set_max_jerk(const AxisEnum axis, float targetValue);
 
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      static void feed_hold_recalculate_current_block();
+      static bool save_block_buffer ();
+      static bool restore_block_buffer ();
+      static xyze_long_t get_position();
+
+    #endif
 
     #if EXTRUDERS
       FORCE_INLINE static void refresh_e_factor(const uint8_t e) {
@@ -838,6 +861,9 @@ class Planner {
       // NOTE: Hard-stops will lose steps so encoders are highly recommended if using these!
       static void quick_pause();
       static void quick_resume();
+      // Called to stop motion BY ramping down speed to 0
+      static void feedhold();
+      static void feedhold_done();
     #endif
 
     // Called when an endstop is triggered. Causes the machine to stop inmediately

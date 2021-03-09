@@ -203,6 +203,106 @@ skew_factor_t Planner::skew_factor; // Initialized by settings.load()
   bool Planner::autotemp_enabled = false;
 #endif
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+  // Save block buffer states
+  block_t (* Planner::block_buffer_save)[];
+  volatile uint8_t Planner::block_buffer_save_head,      // Index of the next block to be pushed
+                          Planner::block_buffer_save_nonbusy,   // Index of the first non busy block
+                          Planner::block_buffer_save_planned,   // Index of the optimally planned block
+                          Planner::block_buffer_save_tail;      // Index of the busy block, if any
+  uint16_t Planner::cleaning_buffer_counter_save;        // A counter to disable queuing of blocks
+  xyze_pos_t Planner::saved_desitination;
+  xyze_long_t Planner::saved_position;
+
+  //
+  bool Planner::save_block_buffer(){
+    // should I check free memory avaiable? freeMemory()?
+    // stepper should be suspended, so the block_buffer won't change?
+    // will the planner change it?
+    // how do I make sure the planner is also suspended?
+    // cleaning_buffer_counter = TEMP_TIMER_FREQUENCY; // try delaying queueing moves
+    block_buffer_save = (block_t (*)[]) malloc( sizeof(block_buffer) )  ;
+    if( block_buffer_save != NULL ){
+      memcpy( block_buffer_save, block_buffer, sizeof( block_buffer));
+      block_buffer_save_head = block_buffer_head;
+      block_buffer_save_nonbusy = block_buffer_nonbusy;
+      block_buffer_save_planned = block_buffer_planned;
+      block_buffer_save_tail = block_buffer_tail;
+      //cleaning_buffer_counter_save = cleaning_buffer_counter;
+      // delay_before_delivering_save = delay_before_delivering;
+      saved_desitination = destination;
+      saved_position = position;
+      return true;
+    }
+    return false;
+  }
+  bool Planner::restore_block_buffer (){
+    if( block_buffer_save != NULL ) {
+      clear_block_buffer();
+      memcpy( block_buffer, block_buffer_save, sizeof( block_buffer));
+      free( block_buffer_save );
+      block_buffer_save = NULL;
+      block_buffer_head = block_buffer_save_head;
+      block_buffer_nonbusy = block_buffer_save_nonbusy;
+      block_buffer_planned = block_buffer_save_planned;
+      block_buffer_tail = block_buffer_save_tail;
+      //cleaning_buffer_counter = cleaning_buffer_counter_save;
+      set_current_from_steppers_for_axis(ALL_AXES);
+      position = saved_position;
+      //block_buffer[block_buffer_tail].position = position;
+      current_position = destination = saved_desitination;
+      // delay_before_delivering = delay_before_delivering_save;
+      return true;
+    }
+    return false;
+  }
+
+  void Planner::feed_hold_recalculate_current_block(){
+    // Recalculate the current block
+    // The stepper ISR should be stopped now. I am going to reset the tail block to start from the
+    // current position and finish as normal.
+
+    if ( block_buffer_head != block_buffer_tail ) {
+      block_t *current_block = get_current_block() ;
+      //current_block = &block_buffer[ block_buffer_tail ];
+      // correct the number of steps
+      // correct the step event count
+      
+      uint32_t se_count = stepper.get_step_event_count();
+      uint32_t se_completed = stepper.get_step_events_completed();
+
+      current_block->step_event_count = (se_count - se_completed)  ;
+      current_block->decelerate_after -= se_completed ;
+      stepper.set_step_events_completed ( 0 );
+
+      // get the target from desitination
+      // const abce_long_t target = {
+      //   int32_t(LROUND( destination.a * settings.axis_steps_per_mm[A_AXIS])),
+      //   int32_t(LROUND( destination.b * settings.axis_steps_per_mm[B_AXIS])),
+      //   int32_t(LROUND( destination.c * settings.axis_steps_per_mm[C_AXIS])),
+      //   int32_t(LROUND( destination.e * settings.axis_steps_per_mm[E_AXIS_N(extruder)]))
+      // };
+
+      // Calcualte the number of steps for reach axis to complete the block
+      current_block->steps.a = ABS( stepper.position(A_AXIS) - current_block->target.x );
+      current_block->steps.b = ABS( stepper.position(B_AXIS) - current_block->target.y );
+      current_block->steps.c = ABS( stepper.position(C_AXIS) - current_block->target.z );
+
+      // recalculate trapazoid
+      // mark from recalculate
+      current_block->flag = BLOCK_FLAG_RECALCULATE;
+      recalculate();
+      // Clear all flags, including the "busy" bit
+      current_block->flag = 0x00;
+    }
+  }
+
+  xyze_long_t Planner::get_position(){
+    return position;
+  }
+
+#endif
+
 // private:
 
 xyze_long_t Planner::position{0};
@@ -1607,6 +1707,13 @@ void Planner::quick_stop() {
     TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(grbl_state_for_marlin_state()));
     stepper.wake_up();
   }
+void Planner::feedhold() {
+  // Stop motion as fast as MAX_ACCEL allows
+  stepper.feed_hold();
+}
+
+void Planner::feedhold_done() {
+}
 
 #endif
 
@@ -2649,7 +2756,11 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
   TERN_(GRADIENT_MIX, mixer.gradient_control(target_float.z));
   TERN_(POWER_LOSS_RECOVERY, block->sdpos = recovery.command_sdpos());
 
-  return true;        // Movement was accepted
+  #if ENABLED(REALTIME_REPORTING_COMMANDS)
+  block->target = target;
+  #endif
+  
+    return true;        // Movement was accepted
 
 } // _populate_block()
 

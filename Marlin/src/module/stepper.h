@@ -234,6 +234,9 @@
 // Perhaps DISABLE_MULTI_STEPPING should be required with ADAPTIVE_STEP_SMOOTHING.
 #define MIN_STEP_ISR_FREQUENCY (MAX_STEP_ISR_FREQUENCY_1X / 2)
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+  enum FeedholdState : u_int8_t { FH_IDLE, FH_START, FH_BRAKING, FH_HOLDING };
+#endif
 //
 // Stepper class definition
 //
@@ -266,9 +269,34 @@ class Stepper {
       static constexpr uint8_t last_moved_extruder = 0;
     #endif
 
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      // Save the states
+      static xyze_long_t delta_error_save;
+      static xyze_ulong_t advance_dividend_save;
+
+      uint32_t get_accelerate_until(){ return accelerate_until ; }
+      uint32_t get_decelerate_after(){ return decelerate_after ; }
+      uint32_t get_step_events_completed(){ return step_events_completed  >> oversampling_factor ; }
+      void set_step_events_completed( uint32_t v=0 ){  step_events_completed = v ; }
+      uint32_t get_step_event_count(){ return step_event_count >> oversampling_factor ; }
+      char*    feed_hold_state_string() {
+        static char *fh_names[4] = { "idle", "starting", "braking", "holding" };
+        return fh_names[ feed_hold_state ];
+      }
+      //
+
+      void feed_hold_reset_current_block();
+      //
+    #endif
+
   private:
 
-    static block_t* current_block;          // A pointer to the block currently being traced
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      static FeedholdState feed_hold_state;           // Flag to indicate feed_hold
+      void feed_hold_prepare_block_for_restart();
+    #endif
+
+   static block_t* current_block;          // A pointer to the block currently being traced
 
     static uint8_t last_direction_bits,     // The next stepping-bits to be output
                    axis_did_move;           // Last Movement in the given direction is not null, as computed when the last movement was fetched from planner
@@ -427,6 +455,12 @@ class Stepper {
 
     // Get the position of a stepper, in steps
     static int32_t position(const AxisEnum axis);
+   
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+    static inline uint32_t get_advance_dividend(const AxisEnum axis) { return advance_dividend[axis]; }
+    static inline uint32_t get_advance_divisor() { return advance_divisor; }
+    static inline int32_t get_delta_error(const AxisEnum axis) { return delta_error[axis]; }
+    #endif
 
     // Set the current position in steps
     static void set_position(const int32_t &a, const int32_t &b, const int32_t &c, const int32_t &e);
@@ -448,6 +482,12 @@ class Stepper {
       planner.release_current_block();
     }
 
+    #if ENABLED(REALTIME_REPORTING_COMMANDS)
+    // Smoothly stop all steppers ( feed_hold )
+    static uint32_t feed_hold();
+    static void release_feed_hold() ; // Release the feed_hold
+    #endif
+    
     // Quickly stop all steppers
     FORCE_INLINE static void quick_stop() { abort_current_block = true; }
 

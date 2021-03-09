@@ -251,6 +251,13 @@ void set_current_from_steppers_for_axis(const AxisEnum axis);
 
 void quickstop_stepper();
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+void feedhold(); // Stop motion as fast as MAX_ACCEL allows
+void feedhold_holding(); // Motion stopped. Save stuff, clean up
+void feedhold_resume(); // Restore and restart
+bool is_feedholding() ; // Is there a feedhold active
+#endif 
+
 /**
  * Set the planner/stepper positions directly from current_position with
  * no kinematic translation. Used for homing axes and cartesian/core syncing.
