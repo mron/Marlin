@@ -703,4 +703,10 @@ void GCodeQueue::restore_queue(){
     saved_queue = NULL;
   }
 };
+
+void GCodeQueue::feedhold_abandon(){
+  free( saved_queue );
+  saved_queue = NULL;
+}
+
 #endif

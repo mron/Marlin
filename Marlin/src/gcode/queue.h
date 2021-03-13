@@ -202,7 +202,7 @@ public:
     CommandLine commands[BUFSIZE];  //!< The ring buffer of commands
     SerialState serial_state[NUM_SERIAL]; // save the serial states?
   } ;
-  
+
   static Queue_save *saved_queue;
 
   static void save_queue();
@@ -211,6 +211,7 @@ public:
    *  Restore the queue. Restore all the states needed.
    */
   static void restore_queue();
+  static void feedhold_abandon();
 
 private:
 

@@ -233,12 +233,12 @@ void report_current_position_projected();
   void report_current_grblstate_moving();
   void report_current_position_moving();
 
-  #if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
+  //#if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
     inline void set_and_report_grblstate(const M_StateEnum state) {
       M_State_grbl = state;
       report_current_grblstate_moving();
     }
-  #endif
+  //#endif
 
   #if ENABLED(REALTIME_REPORTING_COMMANDS)
     void quickpause_stepper();
@@ -255,6 +255,7 @@ void quickstop_stepper();
 void feedhold(); // Stop motion as fast as MAX_ACCEL allows
 void feedhold_holding(); // Motion stopped. Save stuff, clean up
 void feedhold_resume(); // Restore and restart
+bool feedhold_abandon(); // Abandon feedhold. Just free the saved queue and block_buffer memory
 bool is_feedholding() ; // Is there a feedhold active
 #endif 
 

@@ -31,6 +31,8 @@
 // Must be declared for allocation and to satisfy the linker
 // Zero values need no initialization.
 
+#define UNKNOWN_COMMAND_LETTER TERN( REALTIME_REPORTING_COMMANDS, '~', '?')
+
 bool GCodeParser::volumetric_enabled;
 
 #if ENABLED(INCH_MODE_SUPPORT)
@@ -77,7 +79,7 @@ GCodeParser parser;
  */
 void GCodeParser::reset() {
   string_arg = nullptr;                 // No whole line argument
-  command_letter = '?';                 // No command letter
+  command_letter = UNKNOWN_COMMAND_LETTER;                 // No command letter
   codenum = 0;                          // No command code
   TERN_(USE_GCODE_SUBCODES, subcode = 0); // No command sub-code
   #if ENABLED(FASTER_GCODE_PARSER)
@@ -162,7 +164,7 @@ void GCodeParser::parse(char *p) {
       #if HAS_PRUSA_MMU2
         if (letter == 'T') {
           // check for special MMU2 T?/Tx/Tc commands
-          if (*p == '?' || *p == 'x' || *p == 'c') {
+          if (*p == UNKNOWN_COMMAND_LETTER || *p == 'x' || *p == 'c') {
             command_letter = letter;
             string_arg = p;
             return;
@@ -174,7 +176,7 @@ void GCodeParser::parse(char *p) {
       if (!TERN(SIGNED_CODENUM, NUMERIC_SIGNED(*p), NUMERIC(*p))) return;
 
       // Save the command letter at this point
-      // A '?' signifies an unknown command
+      // A UNKNOWN_COMMAND_LETTER signifies an unknown command
       command_letter = letter;
 
       {
@@ -232,12 +234,13 @@ void GCodeParser::parse(char *p) {
     #endif // GCODE_MOTION_MODES
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      case '?' : case '!' : command_letter = letter; return; // These were handled in the e_parser
       case 'S': case 'P': case 'R': {
         codenum = 0;                  // The only valid codenum is 0
         uint8_t digits = 0;
         while (*p++ == '0') digits++; // Count up '0' characters
-        command_letter = (digits == 3) ? letter : '?'; // Three '0' digits is a good command
-      } return;                       // No parameters, so return
+        command_letter = (digits == 3) ? letter : UNKNOWN_COMMAND_LETTER; // Three '0' digits is a good command
+      } return;                      // No parameters, so return
     #endif
 
     default: return;

@@ -279,6 +279,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   #endif
 
   // Handle a known command or reply "unknown command"
+
+  bool suppress_ok = no_ok ;
   switch (parser.command_letter) {
 
     case 'G': switch (parser.codenum) {
@@ -977,7 +979,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
     #endif
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
-      case 'S': case 'P': case 'R': break;                        // Invalid S, P, R commands already filtered
+      case 'P': case '!':
+        suppress_ok=true;
+        break ; // Suppress ok until feedhold complete
+      case 'S' : case 'R' : case '?' : break ; // Invalid S, P, R commands already filtered
     #endif
 
     default:
@@ -987,7 +992,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       parser.unknown_command_warning();
   }
 
-  if (!no_ok) queue.ok_to_send();
+  if (!suppress_ok) queue.ok_to_send();
 
   SERIAL_OUT(msgDone); // Call the msgDone serial hook to signal command processing done
 }

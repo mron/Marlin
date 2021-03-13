@@ -29,6 +29,10 @@
 #include "../../module/printcounter.h"
 #include "../../lcd/marlinui.h"
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+#include "../../module/motion.h"
+#endif
+
 #if ENABLED(PARK_HEAD_ON_PAUSE)
   #include "../../feature/pause.h"
 #endif
@@ -82,6 +86,10 @@ void GcodeSuite::M24() {
     TERN_(HOST_PROMPT_SUPPORT, host_prompt_open(PROMPT_INFO, PSTR("Resuming SD"), DISMISS_STR));
   #endif
 
+  #if ENABLED( REALTIME_REPORT_COMMANDS )
+  if( is_feedholding() ) feedhold_abandon() ;
+  #endif
+  
   ui.reset_status();
 }
 

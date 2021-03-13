@@ -61,6 +61,7 @@ public:
       EP_S, EP_S0, EP_S00, EP_GRBL_STATUS,
       EP_R, EP_R0, EP_R00, EP_GRBL_RESUME,
       EP_P, EP_P0, EP_P00, EP_GRBL_PAUSE,
+      EP_BANG, EP_QMARK,
     #endif
     EP_IGNORE // to '\n'
   };
@@ -88,6 +89,8 @@ public:
             case 'S': state = EP_S; break;
             case 'P': state = EP_P; break;
             case 'R': state = EP_R; break;
+            case '!': state = EP_BANG ; break;
+            case '?': state = EP_QMARK ; break;
           #endif
           default: state = EP_IGNORE;
         }
@@ -102,6 +105,8 @@ public:
             case 'S': state = EP_S; break;
             case 'P': state = EP_P; break;
             case 'R': state = EP_R; break;
+            case '!': state = EP_GRBL_PAUSE ; break;
+            case '?': state = EP_GRBL_STATUS ; break;
           #endif
           default: state = EP_IGNORE;
         }
@@ -194,6 +199,15 @@ public:
           state = EP_RESET;
         }
     }
+    
+    // Send query and feedhold without EOL
+    #if ENABLED( REALTIME_REPORTING_COMMANDS )
+      if (enabled) switch (state) {
+        case EP_QMARK: state = EP_RESET ;report_current_position_moving(); break;
+        case EP_BANG:  state = EP_RESET ; quickpause_stepper(); break;
+        default: break;
+      }
+    #endif
   }
 
 private:

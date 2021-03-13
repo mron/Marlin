@@ -329,6 +329,8 @@ void quickstop_stepper() {
     // release feed hold and wake up stepper
     stepper.release_feed_hold();
     stepper.wake_up();
+    set_and_report_grblstate(M_HOLD);
+    queue.ok_to_send();
   }
 
   void feedhold_resume() {
@@ -339,14 +341,22 @@ void quickstop_stepper() {
     planner.restore_block_buffer();
 
     if( was_enabled ) stepper.wake_up();
-
+    set_and_report_grblstate(M_RUNNING);
     #if ENABLED(SDSUPPORT)
       if (IS_SD_PAUSED()) card.resumeSDPrint();
     #endif
   }
-// Check to see if there is a feedhold active, I'm using the existence of a saved block buffer.
-// Might be a bad idea
-bool is_feedholding(){ return planner.block_buffer_save != NULL ; }
+  
+  // Abandon feedhold. Just free the saved queue and block_buffer memory
+  bool feedhold_abandon(){
+    planner.feedhold_abandon();
+    queue.feedhold_abandon();
+    set_and_report_grblstate(M_IDLE);
+  }
+
+  // Check to see if there is a feedhold active, I'm using the existence of a saved block buffer.
+  // Might be a bad idea
+  bool is_feedholding(){ return planner.block_buffer_save != NULL ; }
 
 #endif
 

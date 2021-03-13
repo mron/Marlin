@@ -27,6 +27,10 @@
 #include "../../module/stepper.h"
 #include "../../module/endstops.h"
 
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+  #include "../../module/motion.h" )
+#endif
+
 #if HAS_MULTI_HOTEND
   #include "../../module/tool_change.h"
 #endif
@@ -68,6 +72,10 @@
 #if ENABLED(QUICK_HOME)
 
   static void quick_home_xy() {
+
+    #if ENABLED( REALTIME_REPORTING_COMMANDS )
+      if( is_feedholding() ) feedhold_abandon();
+    #endif
 
     // Pretend the current position is 0,0
     current_position.set(0.0, 0.0);
@@ -213,6 +221,8 @@ void GcodeSuite::G28() {
 
   TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_HOMING));
 
+  TERN_( REALTIME_REPORTING_COMMANDS, if( is_feedholding() ) feedhold_abandon() );
+ 
   #if ENABLED(DUAL_X_CARRIAGE)
     bool IDEX_saved_duplication_state = extruder_duplication_enabled;
     DualXMode IDEX_saved_mode = dual_x_carriage_mode;

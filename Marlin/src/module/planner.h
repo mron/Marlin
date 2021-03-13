@@ -864,6 +864,7 @@ class Planner {
       // Called to stop motion BY ramping down speed to 0
       static void feedhold();
       static void feedhold_done();
+      static void feedhold_abandon();
     #endif
 
     // Called when an endstop is triggered. Causes the machine to stop inmediately

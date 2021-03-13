@@ -257,6 +257,12 @@ skew_factor_t Planner::skew_factor; // Initialized by settings.load()
     return false;
   }
 
+  // The feedhold is being abandoned. Free saved block buffer
+  void Planner::feedhold_abandon(){
+    free( block_buffer_save );
+    block_buffer_save = NULL;
+  }
+
   void Planner::feed_hold_recalculate_current_block(){
     // Recalculate the current block
     // The stepper ISR should be stopped now. I am going to reset the tail block to start from the
@@ -1698,13 +1704,12 @@ void Planner::quick_stop() {
     // Suspend until quick_resume is called
     // Don't empty buffers or queues
     const bool did_suspend = stepper.suspend();
-    if (did_suspend)
-      TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(M_HOLD));
+    if (did_suspend) set_and_report_grblstate(M_HOLD) ;
   }
 
   // Resume if suspended
   void Planner::quick_resume() {
-    TERN_(FULL_REPORT_TO_HOST_FEATURE, set_and_report_grblstate(grbl_state_for_marlin_state()));
+    set_and_report_grblstate(grbl_state_for_marlin_state());
     stepper.wake_up();
   }
 void Planner::feedhold() {
