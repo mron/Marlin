@@ -982,7 +982,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       case 'P': case '!':
         suppress_ok=true;
         break ; // Suppress ok until feedhold complete
-      case 'S' : case 'R' : case '?' : break ; // Invalid S, P, R commands already filtered
+      case 'S' : case 'R' : case '?' : case '~': break ; // Invalid S, P, R commands already filtered
     #endif
 
     default:
@@ -990,6 +990,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         if (wifi_custom_command(parser.command_ptr)) break;
       #endif
       parser.unknown_command_warning();
+      // SERIAL_ECHOLN( "<Idle|MPos:0.000,0.000,0.000|FS:0.0,0>");
+      // SERIAL_ECHOLN( "ok");
   }
 
   if (!suppress_ok) queue.ok_to_send();

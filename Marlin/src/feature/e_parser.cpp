@@ -30,6 +30,8 @@
 
 #include "e_parser.h"
 
+TERN_( REALTIME_REPORTING_COMMANDS, bool sent_grbl_ready );
+
 // Static data members
 bool EmergencyParser::killed_by_M112, // = false
      EmergencyParser::quickstop_by_M410,

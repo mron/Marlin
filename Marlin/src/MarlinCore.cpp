@@ -258,6 +258,11 @@ bool wait_for_heatup = true;
 
 #endif
 
+// Send a grbl ready string on bootup until a charater is received
+#if ENABLED(REALTIME_REPORTING_COMMANDS)
+  extern bool sent_grbl_ready;
+#endif
+
 /**
  * ***************************************************************************
  * ******************************** FUNCTIONS ********************************
@@ -1270,6 +1275,20 @@ void setup() {
 
   marlin_state = MF_RUNNING;
 
+  #if ENABLED( REALTIME_REPORTING_COMMANDS )
+  // Grbl spec calls for the controller to push a message to the gcode serial server when it boots
+  // Seems dumb to me, you always have to reboot Marlin to connect.
+  uint32_t idle_count = 0 ;
+  sent_grbl_ready = false;
+  while(sent_grbl_ready == false ) {
+    if ( !idle_count ){
+      SERIAL_ECHOLN( "Grbl 0.9 ['$' for help]");
+      idle_count = 250000;
+    }
+    idle_count -- ;
+    idle();
+  }
+  #endif
   SETUP_LOG("setup() completed.");
 }
 

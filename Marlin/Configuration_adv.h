@@ -2043,7 +2043,7 @@
 #define REALTIME_REPORTING_COMMANDS
 
 // Send machine status reports while moving and status reports GRBL style
-//#define FULL_REPORT_TO_HOST_FEATURE
+#define FULL_REPORT_TO_HOST_FEATURE
 
 // Bad Serial-connections can miss a received command by sending an 'ok'
 // Therefore some clients abort after 30 seconds in a timeout.

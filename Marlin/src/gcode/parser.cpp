@@ -31,7 +31,7 @@
 // Must be declared for allocation and to satisfy the linker
 // Zero values need no initialization.
 
-#define UNKNOWN_COMMAND_LETTER TERN( REALTIME_REPORTING_COMMANDS, '~', '?')
+#define UNKNOWN_COMMAND_LETTER TERN( REALTIME_REPORTING_COMMANDS, '^', '?')
 
 bool GCodeParser::volumetric_enabled;
 
@@ -234,7 +234,7 @@ void GCodeParser::parse(char *p) {
     #endif // GCODE_MOTION_MODES
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
-      case '?' : case '!' : command_letter = letter; return; // These were handled in the e_parser
+      case '?' : case '!' :case '~' : command_letter = letter; return; // These were handled in the e_parser
       case 'S': case 'P': case 'R': {
         codenum = 0;                  // The only valid codenum is 0
         uint8_t digits = 0;
@@ -267,7 +267,8 @@ void GCodeParser::parse(char *p) {
   }
 
   #if ENABLED(DEBUG_GCODE_PARSER)
-    const bool debug = codenum == 800;
+    //const bool debug = codenum == 800;
+    const bool debug = true;
   #endif
 
   /**

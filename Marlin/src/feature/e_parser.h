@@ -36,6 +36,7 @@ extern bool wait_for_user, wait_for_heatup;
 
 #if ENABLED(REALTIME_REPORTING_COMMANDS)
   // motion.h cannot be included here
+  extern bool sent_grbl_ready;
   void report_current_position_moving();
   void quickpause_stepper();
   void quickresume_stepper();
@@ -61,7 +62,7 @@ public:
       EP_S, EP_S0, EP_S00, EP_GRBL_STATUS,
       EP_R, EP_R0, EP_R00, EP_GRBL_RESUME,
       EP_P, EP_P0, EP_P00, EP_GRBL_PAUSE,
-      EP_BANG, EP_QMARK,
+      EP_BANG, EP_QMARK, EP_TILDA,
     #endif
     EP_IGNORE // to '\n'
   };
@@ -79,6 +80,7 @@ public:
   FORCE_INLINE static void disable() { enabled = false; }
 
   FORCE_INLINE static void update(State &state, const uint8_t c) {
+    sent_grbl_ready = true;
     switch (state) {
       case EP_RESET:
         switch (c) {
@@ -91,6 +93,7 @@ public:
             case 'R': state = EP_R; break;
             case '!': state = EP_BANG ; break;
             case '?': state = EP_QMARK ; break;
+            case '~': state = EP_TILDA ; break;
           #endif
           default: state = EP_IGNORE;
         }
@@ -107,6 +110,7 @@ public:
             case 'R': state = EP_R; break;
             case '!': state = EP_GRBL_PAUSE ; break;
             case '?': state = EP_GRBL_STATUS ; break;
+            case '~': state = EP_GRBL_RESUME ; break;
           #endif
           default: state = EP_IGNORE;
         }
@@ -205,6 +209,7 @@ public:
       if (enabled) switch (state) {
         case EP_QMARK: state = EP_RESET ;report_current_position_moving(); break;
         case EP_BANG:  state = EP_RESET ; quickpause_stepper(); break;
+        case EP_TILDA: state = EP_RESET ; quickresume_stepper(); break;
         default: break;
       }
     #endif
