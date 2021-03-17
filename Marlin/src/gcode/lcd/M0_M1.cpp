@@ -51,7 +51,7 @@ void GcodeSuite::M0_M1() {
   if (parser.seenval('S')) ms = parser.value_millis_from_seconds(); // Seconds to wait
 
   //planner.synchronize();
-  feedhold();
+  quickpause_stepper();
 
   #if HAS_LCD_MENU
 
