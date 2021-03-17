@@ -187,7 +187,11 @@ public:
       default:
         if (ISEOL(c)) {
           if (enabled) switch (state) {
-            case EP_M108: wait_for_user = wait_for_heatup = false; break;
+            case EP_M108: wait_for_user = wait_for_heatup = false;
+            #if ENABLED( REALTIME_REPORTING_COMMANDS)
+              quickresume_stepper();
+            #endif
+            break;
             case EP_M112: killed_by_M112 = true; break;
             case EP_M410: quickstop_by_M410 = true; break;
             #if ENABLED(HOST_PROMPT_SUPPORT)
