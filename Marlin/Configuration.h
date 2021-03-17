@@ -107,14 +107,15 @@
  *
  * :[-1, 0, 1, 2, 3, 4, 5, 6, 7]
  */
-#define SERIAL_PORT -1
+//#define SERIAL_PORT -1
+#define SERIAL_PORT 0
 
 /**
  * Select a secondary serial port on the board to use for communication with the host.
  * Currently Ethernet (-2) is only supported on Teensy 4.1 boards.
  * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7]
  */
-#define SERIAL_PORT_2 0
+//#define SERIAL_PORT_2 0
 
 /**
  * This setting determines the communication speed of the printer.
@@ -132,7 +133,8 @@
 
 // Choose the name from boards.h that matches your setup
 #ifndef MOTHERBOARD
-  #define MOTHERBOARD BOARD_BTT_SKR_V1_3
+  //#define MOTHERBOARD BOARD_BTT_SKR_V1_3
+  #define MOTHERBOARD BOARD_RAMPS_14_SF
 #endif
 
 // Name displayed in the LCD "Ready" message and Info menu
@@ -146,7 +148,7 @@
 
 // This defines the number of extruders
 // :[0, 1, 2, 3, 4, 5, 6, 7, 8]
-#define EXTRUDERS 1
+#define EXTRUDERS 0
 
 // Generally expected filament diameter (1.75, 2.85, 3.0, ...). Used for Volumetric, Filament Width Sensor, etc.
 #define DEFAULT_NOMINAL_FILAMENT_DIA 1.75
