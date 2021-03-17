@@ -238,6 +238,7 @@
 PGMSTR(M112_KILL_STR, "M112 Shutdown");
 
 MarlinState marlin_state = MF_INITIALIZING;
+TERN_( REALTIME_REPORTING_COMMANDS, extern M_StateEnum grbl_state ) ;
 
 // For M109 and M190, this flag may be cleared (by M108) to exit the wait loop
 bool wait_for_heatup = true;
@@ -396,6 +397,7 @@ void startOrResumeJob() {
   inline void finishSDPrinting() {
     if (queue.enqueue_one_P(PSTR("M1001"))) {
       marlin_state = MF_RUNNING;
+      TERN_( REALTIME_REPORTING_COMMANDS, grbl_state = M_IDLE ) ;
       TERN_(PASSWORD_AFTER_SD_PRINT_END, password.lock_machine());
       TERN_(DGUS_LCD_UI_MKS, ScreenHandler.SDPrintingFinished());
     }
@@ -640,6 +642,10 @@ void idle(TERN_(ADVANCED_PAUSE_FEATURE, bool no_stepper_sleep/*=false*/)) {
   // Return if setup() isn't completed
   if (marlin_state == MF_INITIALIZING) goto IDLE_DONE;
 
+  // Set Grbl_state
+  #ifdef REALTIME_REPORTING_COMMANDS
+  grbl_state = planner.movesplanned() ? M_RUNNING : grbl_state == M_RUNNING ? M_IDLE : grbl_state ;
+  #endif
   // Handle filament runout sensors
   TERN_(HAS_FILAMENT_SENSOR, runout.run());
 
@@ -806,6 +812,7 @@ void stop() {
     LCD_MESSAGEPGM(MSG_STOPPED);
     safe_delay(350);       // allow enough time for messages to get out before stopping
     marlin_state = MF_STOPPED;
+    TERN_( REALTIME_REPORTING_COMMANDS, grbl_state = M_IDLE ) ;
   }
 }
 
@@ -1274,6 +1281,7 @@ void setup() {
   #endif
 
   marlin_state = MF_RUNNING;
+  TERN_( REALTIME_REPORTING_COMMANDS, grbl_state = M_IDLE ) ; // Set grbl state to IDLE, RUN means something else
 
   #if ENABLED( REALTIME_REPORTING_COMMANDS )
   // Grbl spec calls for the controller to push a message to the gcode serial server when it boots

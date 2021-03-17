@@ -90,6 +90,7 @@ public:
     );
 
     void ok_to_send();
+    void fake_ok_to_send();
 
     inline bool full(uint8_t cmdCount=1) const { return length > (BUFSIZE - cmdCount); }
 
@@ -180,6 +181,7 @@ public:
    *   B<int>  Block queue space remaining
    */
   static inline void ok_to_send() { ring_buffer.ok_to_send(); }
+  static inline void fake_ok_to_send() { ring_buffer.fake_ok_to_send(); }
 
   /**
    * Clear the serial line and request a resend of

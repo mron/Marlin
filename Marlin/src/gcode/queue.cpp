@@ -261,6 +261,22 @@ void GCodeQueue::RingBuffer::ok_to_send() {
   SERIAL_EOL();
 }
 
+void GCodeQueue::RingBuffer::fake_ok_to_send() {
+  #if NO_TIMEOUTS > 0
+    // Start counting from the last command's execution
+    last_command_time = millis();
+  #endif
+  CommandLine &command = commands[index_r];
+  #if HAS_MULTI_SERIAL
+    const serial_index_t serial_ind = command.port;
+    if (serial_ind < 0) return;
+    PORT_REDIRECT(SERIAL_PORTMASK(serial_ind));   // Reply to the serial port that sent the command
+  #endif
+  if (command.skip_ok) return;
+  //SERIAL_ECHOPGM(STR_OK);
+  SERIAL_EOL();
+}
+
 /**
  * Send a "Resend: nnn" message to the host to
  * indicate that a command needs to be re-sent.
@@ -447,9 +463,21 @@ void GCodeQueue::get_serial_commands() {
       }
 
       const char serial_char = (char)c;
+      // Let's try ignoring '?', '!' ... these are single letter commands,
+      // we'll try pretending they are also EOL. they were
+      // hopefully handled in e_parser
+      bool is_single_letter_cmd = false;
+      // switch (serial_char){
+      //   case '?': case '!':  case '~': 
+      //           is_single_letter_cmd = true;
+      //           continue;
+      //   default:
+      //     break;
+      // }
+
       SerialState &serial = serial_state[p];
 
-      if (ISEOL(serial_char)) {
+      if (ISEOL(serial_char) || is_single_letter_cmd ) {
 
         // Reset our state, continue if the line was empty
         if (process_line_done(serial.input_state, serial.line_buffer, serial.count))

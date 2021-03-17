@@ -37,6 +37,7 @@
  */
 void GcodeSuite::M999() {
   marlin_state = MF_RUNNING;
+  TERN_( REALTIME_REPORTING_COMMANDS, grbl_state = M_RUNNING ) ;
   ui.reset_alert_level();
 
   if (parser.boolval('S')) return;

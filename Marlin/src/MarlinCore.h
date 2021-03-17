@@ -61,12 +61,16 @@ enum MarlinState : uint8_t {
   MF_RUNNING      = _BV(0),
   MF_PAUSED       = _BV(1),
   MF_WAITING      = _BV(2),
+  #ifdef REALTIME_REPORTING_COMMANDS
+  MF_IDLE         = MF_WAITING, // Waiting is not used as AFAIK, I'm going to use it, but aliased to MF_IDLE
+  #endif
   MF_STOPPED      = _BV(3),
   MF_SD_COMPLETE  = _BV(4),
   MF_KILLED       = _BV(7)
 };
 
 extern MarlinState marlin_state;
+
 inline bool IsRunning() { return marlin_state == MF_RUNNING; }
 inline bool IsStopped() { return marlin_state != MF_RUNNING; }
 

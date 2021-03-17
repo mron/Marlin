@@ -981,8 +981,8 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
       case 'P': case '!':
         suppress_ok=true;
-        break ; // Suppress ok until feedhold complete
-      case 'S' : case 'R' : case '?' : case '~': break ; // Invalid S, P, R commands already filtered
+        break ; // Suppress ok until feedhold complete, suppress ok on all status requests
+      case 'S' : case 'R' : case '~':  case '?': break ; // Invalid S, P, R commands already handled
     #endif
 
     default:
@@ -990,11 +990,13 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         if (wifi_custom_command(parser.command_ptr)) break;
       #endif
       parser.unknown_command_warning();
-      // SERIAL_ECHOLN( "<Idle|MPos:0.000,0.000,0.000|FS:0.0,0>");
-      // SERIAL_ECHOLN( "ok");
   }
 
-  if (!suppress_ok) queue.ok_to_send();
+  if (!suppress_ok) {
+    queue.ok_to_send();
+  } else {
+    queue.fake_ok_to_send();
+  }
 
   SERIAL_OUT(msgDone); // Call the msgDone serial hook to signal command processing done
 }

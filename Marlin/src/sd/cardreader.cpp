@@ -1219,6 +1219,7 @@ void CardReader::fileHasFinished() {
 
   endFilePrint(TERN_(SD_RESORT, true));
   marlin_state = MF_SD_COMPLETE;
+  TERN_( REALTIME_REPORTING_COMMANDS, grbl_state = M_IDLE ) ;
 }
 
 #if ENABLED(AUTO_REPORT_SD_STATUS)

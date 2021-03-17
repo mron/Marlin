@@ -229,6 +229,7 @@ void report_current_position_projected();
     M_ERROR     // 11 machine is in hard alarm state (shut down)
   };
   extern M_StateEnum M_State_grbl;
+  extern M_StateEnum grbl_state;
   M_StateEnum grbl_state_for_marlin_state();
   void report_current_grblstate_moving();
   void report_current_position_moving();
