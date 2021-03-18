@@ -980,7 +980,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
       case 'P': case '!':
-        suppress_ok=true;
+        //suppress_ok=true;
         break ; // Suppress ok until feedhold complete, suppress ok on all status requests
       case 'S' : case 'R' : case '~':  case '?': break ; // Invalid S, P, R commands already handled
     #endif
