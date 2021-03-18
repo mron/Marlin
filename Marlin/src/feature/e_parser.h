@@ -51,6 +51,9 @@ public:
     EP_RESET,
     EP_N,
     EP_M,
+    #if ENABLED( REALTIME_REPORTING_COMMANDS )
+    EP_M0,
+    #endif
     EP_M1,
     EP_M10, EP_M108,
     EP_M11, EP_M112,
@@ -142,10 +145,22 @@ public:
         }
         break;
 
+      #if ENABLED( REALTIME_REPORTING_COMMANDS )
+      case EP_M0: // feedhold?
+        switch (c) {
+          case ' ': case '\n': case '\r': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
+          default: break;
+        }
+        break;
+      #endif
+
       case EP_M1:
         switch (c) {
           case '0': state = EP_M10;    break;
           case '1': state = EP_M11;    break;
+          #if ENABLED( REALTIME_REPORTING_COMMANDS )
+            case ' ': case '\n': case '\r': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
+          #endif
           default: state  = EP_IGNORE;
         }
         break;
@@ -188,10 +203,8 @@ public:
         if (ISEOL(c)) {
           if (enabled) switch (state) {
             case EP_M108: wait_for_user = wait_for_heatup = false;
-            #if ENABLED( REALTIME_REPORTING_COMMANDS)
-              quickresume_stepper();
-            #endif
-            break;
+              TERN_( REALTIME_REPORTING_COMMANDS, quickresume_stepper() );
+              break;
             case EP_M112: killed_by_M112 = true; break;
             case EP_M410: quickstop_by_M410 = true; break;
             #if ENABLED(HOST_PROMPT_SUPPORT)

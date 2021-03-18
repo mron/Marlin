@@ -50,8 +50,9 @@ void GcodeSuite::M0_M1() {
   if (parser.seenval('P')) ms = parser.value_millis();              // Milliseconds to wait
   if (parser.seenval('S')) ms = parser.value_millis_from_seconds(); // Seconds to wait
 
-  //planner.synchronize();
-  quickpause_stepper();
+  #if DISABLED(REALTIME_REPORTING_COMMANDS) 
+   planner.synchronize() );
+  #endif
 
   #if HAS_LCD_MENU
 
