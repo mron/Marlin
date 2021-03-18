@@ -136,6 +136,7 @@ public:
       case EP_M:
         switch (c) {
           case ' ': break;
+          case '0': state = EP_GRBL_PAUSE;     break;
           case '1': state = EP_M1;     break;
           case '4': state = EP_M4;     break;
           #if ENABLED(HOST_PROMPT_SUPPORT)
@@ -145,21 +146,23 @@ public:
         }
         break;
 
-      #if ENABLED( REALTIME_REPORTING_COMMANDS )
-      case EP_M0: // feedhold?
-        switch (c) {
-          case ' ': case '\n': case '\r': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
-          default: break;
-        }
-        break;
-      #endif
+      // #if ENABLED( REALTIME_REPORTING_COMMANDS )
+      // case EP_M0: // feedhold?
+      //   state = EP_GRBL_PAUSE;
+      //   switch (c) {
+      //     case '\n': case '\r': case ' ': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
+      //     default: break;
+      //   }
+      //   break;
+      // #endif
 
       case EP_M1:
+        state = EP_GRBL_PAUSE;
         switch (c) {
           case '0': state = EP_M10;    break;
           case '1': state = EP_M11;    break;
           #if ENABLED( REALTIME_REPORTING_COMMANDS )
-            case ' ': case '\n': case '\r': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
+            case ' ': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
           #endif
           default: state  = EP_IGNORE;
         }

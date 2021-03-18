@@ -26,6 +26,9 @@
 
 #include "../inc/MarlinConfigPre.h"
 
+#include "../MarlinCore.h"
+
+
 #if ENABLED(EMERGENCY_PARSER)
 
 #include "e_parser.h"

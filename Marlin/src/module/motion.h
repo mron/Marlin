@@ -228,16 +228,15 @@ void report_current_position_projected();
     M_JOGGING,  // 10 machine is jogging
     M_ERROR     // 11 machine is in hard alarm state (shut down)
   };
-  extern M_StateEnum M_State_grbl;
   extern M_StateEnum grbl_state;
   M_StateEnum grbl_state_for_marlin_state();
-  void report_current_grblstate_moving();
+  void report_current_position_moving();
   void report_current_position_moving();
 
   //#if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
     inline void set_and_report_grblstate(const M_StateEnum state) {
-      M_State_grbl = state;
-      report_current_grblstate_moving();
+      grbl_state = state;
+      // report_current_position_moving();
     }
   //#endif
 

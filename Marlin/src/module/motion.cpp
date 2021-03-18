@@ -236,14 +236,13 @@ void report_current_position_projected() {
 
 #if EITHER(FULL_REPORT_TO_HOST_FEATURE, REALTIME_REPORTING_COMMANDS)
 
-  M_StateEnum M_State_grbl = M_IDLE;
   M_StateEnum grbl_state = M_IDLE ;
 
   /**
    * Output the current grbl compatible state to serial while moving
    */
-  void report_current_grblstate() { SERIAL_ECHOPAIR(" S_XYZ:", int(grbl_state_for_marlin_state())); }
-  void report_current_grblstate_moving() { report_current_grblstate(); SERIAL_ECHOLN("") ; }
+  // void report_current_grblstate() { SERIAL_ECHOPAIR(" S_XYZ:", int(grbl_state_for_marlin_state())); }
+  // void report_current_position_moving() { report_current_grblstate(); SERIAL_ECHOLN("") ; }
 
   /**
    * Output the current position (processed) to serial while moving
@@ -251,15 +250,15 @@ void report_current_position_projected() {
   void report_current_position_moving() {
     get_cartesian_from_steppers();
     const xyz_pos_t lpos = cartes.asLogical();
-    SERIAL_ECHOPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s);
+    SERIAL_ECHOLNPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()),">>","");
 
     //stepper.report_positions();
     #if IS_SCARA
       scara_report_positions();
     #endif
 
-    report_current_grblstate();
-    SERIAL_ECHOLN(">>");
+    // report_current_grblstate();
+    // SERIAL_ECHOLN(">>");
   }
 
   /**
@@ -333,7 +332,7 @@ void quickstop_stepper() {
     stepper.release_feed_hold();
     stepper.wake_up();
     set_and_report_grblstate(M_HOLD);
-    queue.ok_to_send();
+    //queue.ok_to_send();
   }
 
   void feedhold_resume() {
