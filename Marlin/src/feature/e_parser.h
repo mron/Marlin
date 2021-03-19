@@ -149,9 +149,9 @@ public:
         switch (c) {
           case '0': state = EP_M10;    break;
           case '1': state = EP_M11;    break;
-          #if ENABLED( REALTIME_REPORTING_COMMANDS )
-            case ' ': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
-          #endif
+          // #if ENABLED( REALTIME_REPORTING_COMMANDS )
+          //   case ' ': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
+          // #endif
           default: state  = EP_IGNORE;
         }
         break;
