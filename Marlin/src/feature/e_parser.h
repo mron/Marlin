@@ -149,9 +149,6 @@ public:
         switch (c) {
           case '0': state = EP_M10;    break;
           case '1': state = EP_M11;    break;
-          // #if ENABLED( REALTIME_REPORTING_COMMANDS )
-          //   case ' ': case 'S':  case 'P': state = EP_GRBL_PAUSE ;  break;
-          // #endif
           default: state  = EP_IGNORE;
         }
         break;
@@ -217,7 +214,10 @@ public:
       if (enabled) switch (state) {
         case EP_QMARK: state = EP_RESET ; report_current_position_moving(); break;
         case EP_BANG:  state = EP_RESET ; quickpause_stepper(); break;
-        case EP_TILDA: state = EP_RESET ; quickresume_stepper(); break;
+        case EP_TILDA: state = EP_RESET ; 
+          wait_for_user = wait_for_heatup = false;
+          quickresume_stepper();
+          break;
         default: break;
       }
     #endif
