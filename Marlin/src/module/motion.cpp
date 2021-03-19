@@ -250,15 +250,15 @@ void report_current_position_projected() {
   void report_current_position_moving() {
     get_cartesian_from_steppers();
     const xyz_pos_t lpos = cartes.asLogical();
-    SERIAL_ECHOLNPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()),">>","");
+    SERIAL_ECHOPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
 
     //stepper.report_positions();
     #if IS_SCARA
-      scara_report_positions();
+      //scara_report_positions();
     #endif
 
     // report_current_grblstate();
-    // SERIAL_ECHOLN(">>");
+    SERIAL_ECHOLN(">>");
   }
 
   /**
@@ -331,7 +331,8 @@ void quickstop_stepper() {
     // release feed hold and wake up stepper
     stepper.release_feed_hold();
     stepper.wake_up();
-    set_and_report_grblstate(M_HOLD);
+    set_grblstate(M_HOLD);
+    report_current_position_moving();
     //queue.ok_to_send();
   }
 
@@ -343,7 +344,8 @@ void quickstop_stepper() {
     planner.restore_block_buffer();
 
     if( was_enabled ) stepper.wake_up();
-    set_and_report_grblstate(M_RUNNING);
+    set_grblstate(M_RUNNING);
+    report_current_position_moving();
     #if ENABLED(SDSUPPORT)
       if (IS_SD_PAUSED()) card.resumeSDPrint();
     #endif
@@ -353,7 +355,8 @@ void quickstop_stepper() {
   bool feedhold_abandon(){
     planner.feedhold_abandon();
     queue.feedhold_abandon();
-    set_and_report_grblstate(M_IDLE);
+    set_grblstate(M_IDLE);
+    report_current_position_moving();
   }
 
   // Check to see if there is a feedhold active, I'm using the existence of a saved block buffer.

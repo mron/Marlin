@@ -231,14 +231,16 @@ void report_current_position_projected();
   extern M_StateEnum grbl_state;
   M_StateEnum grbl_state_for_marlin_state();
   void report_current_position_moving();
-  void report_current_position_moving();
 
-  //#if ENABLED(FULL_REPORT_TO_HOST_FEATURE)
+  #if EITHER(FULL_REPORT_TO_HOST_FEATURE, REALTIME_REPORTING_COMMANDS)
+      inline void set_grblstate(const M_StateEnum state) {
+      grbl_state = state;
+    }
     inline void set_and_report_grblstate(const M_StateEnum state) {
       grbl_state = state;
-      // report_current_position_moving();
+      report_current_position_moving();
     }
-  //#endif
+  #endif
 
   #if ENABLED(REALTIME_REPORTING_COMMANDS)
     void quickpause_stepper();

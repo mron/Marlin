@@ -463,21 +463,21 @@ void GCodeQueue::get_serial_commands() {
       }
 
       const char serial_char = (char)c;
+
+      #if ENABLED( REALTIME_REPORTING_COMMANDS )
       // Let's try ignoring '?', '!' ... these are single letter commands,
-      // we'll try pretending they are also EOL. they were
       // hopefully handled in e_parser
-      bool is_single_letter_cmd = false;
-      // switch (serial_char){
-      //   case '?': case '!':  case '~': 
-      //           is_single_letter_cmd = true;
-      //           continue;
-      //   default:
-      //     break;
-      // }
+      switch (serial_char){
+        case '?': case '!': case '~':
+          continue;
+        default:
+          break;
+      }
+      #endif
 
       SerialState &serial = serial_state[p];
 
-      if (ISEOL(serial_char) || is_single_letter_cmd ) {
+      if (ISEOL(serial_char) ) {
 
         // Reset our state, continue if the line was empty
         if (process_line_done(serial.input_state, serial.line_buffer, serial.count))

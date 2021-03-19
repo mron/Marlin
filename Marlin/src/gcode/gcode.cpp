@@ -279,7 +279,6 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
   #endif
 
   // Handle a known command or reply "unknown command"
-
   bool suppress_ok = no_ok ;
   switch (parser.command_letter) {
 
@@ -525,6 +524,7 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #else
         case 108: case 112: case 410:
         TERN_(HOST_PROMPT_SUPPORT, case 876:)
+        SERIAL_ECHOLN( "---- M108 ------");
         break;
       #endif
 
@@ -979,10 +979,12 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
     #endif
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
-      case 'P': case '!':
-        //suppress_ok=true;
-        break ; // Suppress ok until feedhold complete, suppress ok on all status requests
-      case 'S' : case 'R' : case '~':  case '?': break ; // Invalid S, P, R commands already handled
+      case '!':
+        suppress_ok=true;
+        //break ; // Suppress ok until feedhold complete, suppress ok on all status requests
+      case '~':  case '?': case 'P': case 'S' : case 'R' :
+        //SERIAL_ECHOLNPAIR("Got: ", parser.command_letter );
+        break ; // Invalid S, P, R commands already handled
     #endif
 
     default:

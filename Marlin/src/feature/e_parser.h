@@ -51,9 +51,6 @@ public:
     EP_RESET,
     EP_N,
     EP_M,
-    #if ENABLED( REALTIME_REPORTING_COMMANDS )
-    EP_M0,
-    #endif
     EP_M1,
     EP_M10, EP_M108,
     EP_M11, EP_M112,
@@ -62,6 +59,7 @@ public:
       EP_M8, EP_M87, EP_M876, EP_M876S, EP_M876SN,
     #endif
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      EP_M0,
       EP_S, EP_S0, EP_S00, EP_GRBL_STATUS,
       EP_R, EP_R0, EP_R00, EP_GRBL_RESUME,
       EP_P, EP_P0, EP_P00, EP_GRBL_PAUSE,
@@ -82,7 +80,7 @@ public:
   FORCE_INLINE static void enable()  { enabled = true; }
   FORCE_INLINE static void disable() { enabled = false; }
 
-  FORCE_INLINE static void update(State &state, const uint8_t c) {
+  FORCE_INLINE static void update(State &state, const uint8_t c ) {
     sent_grbl_ready = true;
     switch (state) {
       case EP_RESET:
@@ -227,7 +225,7 @@ public:
     // Send query and feedhold without EOL
     #if ENABLED( REALTIME_REPORTING_COMMANDS )
       if (enabled) switch (state) {
-        case EP_QMARK: state = EP_RESET ;report_current_position_moving(); break;
+        case EP_QMARK: state = EP_RESET ; report_current_position_moving(); break;
         case EP_BANG:  state = EP_RESET ; quickpause_stepper(); break;
         case EP_TILDA: state = EP_RESET ; quickresume_stepper(); break;
         default: break;
