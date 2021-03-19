@@ -589,8 +589,10 @@ private:
     static void M107();
   #endif
 
-  #if DISABLED(EMERGENCY_PARSER)
+  #if DISABLED(EMERGENCY_PARSER) || ENABLED( REALTIME_REPORTING_COMMANDS )
     static void M108();
+  #endif
+  #if DISABLED(EMERGENCY_PARSER)
     static void M112();
     static void M410();
     TERN_(HOST_PROMPT_SUPPORT, static void M876());
