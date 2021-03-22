@@ -237,19 +237,20 @@ void report_current_position_projected() {
 #if EITHER(FULL_REPORT_TO_HOST_FEATURE, REALTIME_REPORTING_COMMANDS)
 
   M_StateEnum grbl_state = M_IDLE ;
-
-  /**
-   * Output the current grbl compatible state to serial while moving
-   */
-  // void report_current_grblstate() { SERIAL_ECHOPAIR(" S_XYZ:", int(grbl_state_for_marlin_state())); }
-  // void report_current_position_moving() { report_current_grblstate(); SERIAL_ECHOLN("") ; }
-
+  
   /**
    * Output the current position (processed) to serial while moving
    */
   void report_current_position_moving() {
     get_cartesian_from_steppers();
     const xyz_pos_t lpos = cartes.asLogical();
+    const xyz_pos_t npos = cartes.asNative();
+    //
+    #if HAS_POSITION_MODIFIERS
+      planner.unapply_modifiers(lpos, true);
+      planner.unapply_modifiers(npos, true);
+    #endif
+    //
     SERIAL_ECHOPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
 
     //stepper.report_positions();
@@ -307,12 +308,17 @@ void quickstop_stepper() {
    */
 
   void feedhold() {
+    if( is_feedholding()) {
+      feedhold_abandon();
+      return;
+    }
     #if ENABLED(SDSUPPORT)
       // Pause the SD print now. Assume there are enough commands in the block buffer
       // and command queue to allow the moves to stop gracefully
       if (IS_SD_PRINTING()) card.pauseSDPrint();
     #endif
     planner.feedhold();
+    set_and_report_grblstate( M_HOLD );
     // if printing from a file, pause the print
     // Set initial pause flag to prevent more commands from landing in the queue while we try to pause
   }
@@ -337,6 +343,7 @@ void quickstop_stepper() {
   }
 
   void feedhold_resume() {
+    if( !is_feedholding()) return; // there is no feedhold
     const bool was_enabled = stepper.suspend();
     // Tell stepper to reset the current_block to finish the current move when restarted
     

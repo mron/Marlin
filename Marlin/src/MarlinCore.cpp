@@ -645,6 +645,7 @@ void idle(TERN_(ADVANCED_PAUSE_FEATURE, bool no_stepper_sleep/*=false*/)) {
   // Set Grbl_state
   #ifdef REALTIME_REPORTING_COMMANDS
   grbl_state = planner.movesplanned() ? M_RUNNING : grbl_state == M_RUNNING ? M_IDLE : grbl_state ;
+  grbl_state = is_feedholding() ? M_HOLD : grbl_state ; // Feedhold active
   #endif
   // Handle filament runout sensors
   TERN_(HAS_FILAMENT_SENSOR, runout.run());

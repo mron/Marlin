@@ -50,9 +50,8 @@ void GcodeSuite::M0_M1() {
   if (parser.seenval('P')) ms = parser.value_millis();              // Milliseconds to wait
   if (parser.seenval('S')) ms = parser.value_millis_from_seconds(); // Seconds to wait
 
-  #if ENABLED(REALTIME_REPORTING_COMMANDS) 
-    feedhold();
-    set_and_report_grblstate( M_HOLD );
+  #if ENABLED(REALTIME_REPORTING_COMMANDS)
+      feedhold();
   #else
      planner.synchronize() );
   #endif
