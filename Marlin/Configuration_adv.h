@@ -2041,6 +2041,7 @@
 
 // Support realtime commands: S000 State, P000 Pause, R000 Resume
 #define REALTIME_REPORTING_COMMANDS
+#define REALTIME_REPORTING_EXTRA // Adds WS coordinates to status
 
 // Send machine status reports while moving and status reports GRBL style
 #define FULL_REPORT_TO_HOST_FEATURE
