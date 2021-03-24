@@ -254,7 +254,7 @@ void report_current_position_projected() {
     SERIAL_ECHOPAIR("<<X:", npos.x, " Y:", npos.y, " Z:", npos.z );
     #if ENABLED( REALTIME_REPORTING_EXTRA )
     const xyz_pos_t lpos = cartes.asLogical();
-    SERIAL_ECHOPAIR(" NX:", lpos.x, " NY:", lpos.y, " NZ:", lpos.z);
+    SERIAL_ECHOPAIR(" WX:", lpos.x, " WY:", lpos.y, " WZ:", lpos.z);
     #endif
 
     SERIAL_ECHOPAIR (" E:", current_position.e,  " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
