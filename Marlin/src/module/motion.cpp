@@ -243,8 +243,9 @@ void report_current_position_projected() {
    */
   void report_current_position_moving() {
     get_cartesian_from_steppers();
+    //const xyz_pos_t lpos = cartes.asLogical();
+    const xyz_pos_t npos = cartes ;
     const xyz_pos_t lpos = cartes.asLogical();
-    const xyz_pos_t npos = cartes.asNative();
     //
     #if HAS_POSITION_MODIFIERS
       planner.unapply_modifiers(lpos, true);
@@ -252,7 +253,7 @@ void report_current_position_projected() {
     #endif
     //
     SERIAL_ECHOPAIR("<<X:", npos.x, " Y:", npos.y, " Z:", npos.z );
-    SERIAL_ECHOPAIR(" NX:", npos.x, " NY:", npos.y, " NZ:", npos.z, " E:", current_position.e,  " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
+    SERIAL_ECHOPAIR(" NX:", lpos.x, " NY:", lpos.y, " NZ:", lpos.z, " E:", current_position.e,  " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
 
     //stepper.report_positions();
     #if IS_SCARA
