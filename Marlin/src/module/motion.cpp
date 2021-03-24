@@ -251,7 +251,8 @@ void report_current_position_projected() {
       planner.unapply_modifiers(npos, true);
     #endif
     //
-    SERIAL_ECHOPAIR("<<X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z, " E:", current_position.e, " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
+    SERIAL_ECHOPAIR("<<X:", npos.x, " Y:", npos.y, " Z:", npos.z );
+    SERIAL_ECHOPAIR(" NX:", npos.x, " NY:", npos.y, " NZ:", npos.z, " E:", current_position.e,  " F:", feedrate_mm_s, " S_XYZ:", int(grbl_state_for_marlin_state()));
 
     //stepper.report_positions();
     #if IS_SCARA

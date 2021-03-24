@@ -109,7 +109,14 @@ public:
   /**
    * Clear the Marlin command queue
    */
-  static void clear() { ring_buffer.clear(); }
+  static void clear() { 
+    ring_buffer.clear();
+    // for ( char i = 0; i<NUM_SERIAL; i++){
+    //   SERIAL_ECHOLNPAIR(" ----------- CLEARING: ", serial_state[i].line_buffer);
+    //   serial_state[i].count = 0;
+    //   memset(serial_state[i].line_buffer, 0, MAX_CMD_SIZE );
+    // }
+  }
 
   /**
    * Next Injected Command (PROGMEM) pointer. (nullptr == empty)
@@ -202,6 +209,7 @@ public:
             index_r,                //!< Ring buffer's read position
             index_w;                //!< Ring buffer's write position
     CommandLine commands[BUFSIZE];  //!< The ring buffer of commands
+    char serial_buffer[MAX_CMD_SIZE];  //!< The serial buffer
     SerialState serial_state[NUM_SERIAL]; // save the serial states?
   } ;
 
