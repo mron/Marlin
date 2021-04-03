@@ -40,6 +40,19 @@
   #define N_ARC_CORRECTION 1
 #endif
 
+#if ENABLED( REALTIME_REPORTING_COMMANDS )
+/**
+ * Save plan_arc data for restore
+ **/
+struct saved_arc_data {
+  ab_float_t center;   // arc center in "destination" coord
+  ab_float_t offset; // Center of rotation relative to current_position - this is a &
+  bool clockwise;     // Clockwise?
+  uint8_t circles;    // Take the scenic route
+  uint16_t segments_done; // save the number of completed segments
+};
+#endif
+
 /**
  * Plan an arc in 2 dimensions, with optional linear motion in a 3rd dimension
  *
@@ -48,12 +61,48 @@
  * an option to generate G2/G3 arcs for curved surfaces, as this will allow faster
  * boards to produce much smoother curved surfaces.
  */
+
+saved_arc_data *restore_arc_data = nullptr;
+
+void plan_arc_abandon_feedhold() {
+  if ( restore_arc_data != nullptr ){
+    free( restore_arc_data );
+    restore_arc_data = nullptr ;
+  }
+}
+
 void plan_arc(
   const xyze_pos_t &cart,   // Destination position
   const ab_float_t &offset, // Center of rotation relative to current_position
   const bool clockwise,     // Clockwise?
   const uint8_t circles     // Take the scenic route
 ) {
+  #if ENABLED( REALTIME_REPORTING_COMMANDS )
+    static ab_float_t center ;
+    uint16_t segments_done; // Keep track of the number of segements completed
+    ab_float_t l_offset = offset; // modifiable copy of center of rotation relative to current_position
+    /*
+          restore_arc_data = (saved_arc_data *) malloc( sizeof( saved_arc_data ));
+      if( restore_arc_data != nullptr ){
+        ab_float_t current_xy = {current_position.x, current_position.y};
+        center = current_xy + offset ;
+        restore_arc_data->circles = circles ;
+        restore_arc_data->clockwise = clockwise ;
+      }
+    */
+    ab_float_t current_xy = {current_position.x, current_position.y};
+    if( restore_arc_data != nullptr ) { // If there is restore_data, we are restarting from a feedhold
+      l_offset = restore_arc_data->center - current_xy ;
+      segments_done = restore_arc_data->segments_done ;
+      free( restore_arc_data );
+      restore_arc_data = nullptr ;
+    } else {
+      segments_done = 0; // No feedhold, start at the beginning
+      center = current_xy + offset ; // Calculate the center
+    }
+
+  #endif
+
   #if ENABLED(CNC_WORKSPACE_PLANES)
     AxisEnum p_axis, q_axis, l_axis;
     switch (gcode.workspace_plane) {
@@ -67,7 +116,7 @@ void plan_arc(
   #endif
 
   // Radius vector from center to current location
-  ab_float_t rvec = -offset;
+  ab_float_t rvec = -l_offset;
 
   const float radius = HYPOT(rvec.a, rvec.b),
               center_P = current_position[p_axis] - rvec.a,
@@ -122,7 +171,7 @@ void plan_arc(
     for (uint16_t n = circles; n--;) {
       temp_position.e += e_per_circle;                                    // Destination E axis
       temp_position[l_axis] += l_per_circle;                              // Destination L axis
-      plan_arc(temp_position, offset, clockwise, 0);                      // Plan a single whole circle
+      plan_arc(temp_position, l_offset, clockwise, 0);                      // Plan a single whole circle
     }
     linear_travel = cart[l_axis] - current_position[l_axis];
     extruder_travel = cart.e - current_position.e;
@@ -202,6 +251,18 @@ void plan_arc(
 
   for (uint16_t i = 1; i < segments; i++) { // Iterate (segments-1) times
 
+    if ( motion_feedhold_state == FH_HOLDING && restore_arc_data == nullptr ){
+      restore_arc_data = (saved_arc_data *) malloc( sizeof( saved_arc_data ));
+      if( restore_arc_data != nullptr ){
+        ab_float_t current_xy = {current_position.x, current_position.y};
+        restore_arc_data->center = center;
+        restore_arc_data->circles = circles ;
+        restore_arc_data->clockwise = clockwise ;
+        restore_arc_data->segments_done = segments_done ;
+      }
+      return;
+    }
+
     thermalManager.manage_heater();
     if (ELAPSED(millis(), next_idle_ms)) {
       next_idle_ms = millis() + 200UL;
@@ -227,8 +288,8 @@ void plan_arc(
       // To reduce stuttering, the sin and cos could be computed at different times.
       // For now, compute both at the same time.
       const float cos_Ti = cos(i * theta_per_segment), sin_Ti = sin(i * theta_per_segment);
-      rvec.a = -offset[0] * cos_Ti + offset[1] * sin_Ti;
-      rvec.b = -offset[0] * sin_Ti - offset[1] * cos_Ti;
+      rvec.a = -l_offset[0] * cos_Ti + l_offset[1] * sin_Ti;
+      rvec.b = -l_offset[0] * sin_Ti - l_offset[1] * cos_Ti;
     }
 
     // Update raw location
@@ -248,11 +309,16 @@ void plan_arc(
       planner.apply_leveling(raw);
     #endif
 
-    if (!planner.buffer_line(raw, scaled_fr_mm_s, active_extruder, 0
-      #if ENABLED(SCARA_FEEDRATE_SCALING)
-        , inv_duration
-      #endif
-    )) break;
+    if( i > segments_done ){
+      if (!planner.buffer_line(raw, scaled_fr_mm_s, active_extruder, 0
+        #if ENABLED(SCARA_FEEDRATE_SCALING)
+          , inv_duration
+        #endif
+      )) { break; }
+      else {
+        segments_done = i ;
+      }
+    }
   }
 
   // Ensure last segment arrives at target location.

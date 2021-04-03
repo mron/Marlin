@@ -234,9 +234,6 @@
 // Perhaps DISABLE_MULTI_STEPPING should be required with ADAPTIVE_STEP_SMOOTHING.
 #define MIN_STEP_ISR_FREQUENCY (MAX_STEP_ISR_FREQUENCY_1X / 2)
 
-#if ENABLED(REALTIME_REPORTING_COMMANDS)
-  enum FeedholdState : uint8_t { FH_IDLE, FH_START, FH_BRAKING, FH_HOLDING };
-#endif
 //
 // Stepper class definition
 //

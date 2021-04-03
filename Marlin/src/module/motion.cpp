@@ -313,6 +313,10 @@ void quickstop_stepper() {
    * 
    */
 
+  FeedholdState motion_feedhold_state = FH_IDLE;
+
+  extern void plan_arc_abandon_feedhold() ;
+
   void feedhold() {
     if( is_feedholding()) {
       feedhold_abandon();
@@ -323,6 +327,7 @@ void quickstop_stepper() {
       // and command queue to allow the moves to stop gracefully
       if (IS_SD_PRINTING()) card.pauseSDPrint();
     #endif
+    motion_feedhold_state = FH_BRAKING;
     planner.feedhold();
     set_and_report_grblstate( M_HOLD );
     // if printing from a file, pause the print
@@ -342,6 +347,7 @@ void quickstop_stepper() {
     stepper.discard_current_block();
     // release feed hold and wake up stepper
     stepper.release_feed_hold();
+    motion_feedhold_state = FH_HOLDING;
     stepper.wake_up();
     set_grblstate(M_HOLD);
     report_current_position_moving();
@@ -357,6 +363,7 @@ void quickstop_stepper() {
     planner.restore_block_buffer();
 
     if( was_enabled ) stepper.wake_up();
+    motion_feedhold_state = FH_IDLE;
     set_grblstate(M_RUNNING);
     report_current_position_moving();
     #if ENABLED(SDSUPPORT)
@@ -368,6 +375,8 @@ void quickstop_stepper() {
   bool feedhold_abandon(){
     planner.feedhold_abandon();
     queue.feedhold_abandon();
+    plan_arc_abandon_feedhold();
+    motion_feedhold_state = FH_IDLE;
     set_grblstate(M_IDLE);
     report_current_position_moving();
   }

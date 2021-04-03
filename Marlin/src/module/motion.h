@@ -254,6 +254,9 @@ void set_current_from_steppers_for_axis(const AxisEnum axis);
 void quickstop_stepper();
 
 #if ENABLED(REALTIME_REPORTING_COMMANDS)
+enum FeedholdState : u_int8_t { FH_IDLE, FH_START, FH_BRAKING, FH_RESTORE, FH_HOLDING };
+extern FeedholdState motion_feedhold_state;
+
 void feedhold(); // Stop motion as fast as MAX_ACCEL allows
 void feedhold_holding(); // Motion stopped. Save stuff, clean up
 void feedhold_resume(); // Restore and restart

@@ -235,7 +235,8 @@ void GCodeParser::parse(char *p) {
 
     #if ENABLED(REALTIME_REPORTING_COMMANDS)
       case '?' : case '!' :case '~' : command_letter = letter; return; // These were handled in the e_parser
-      case 'S': case 'P': case 'R': {
+      //case 'P': case 'R': // Conflicts with GCODE_MOTION_MODES/ARC_SUPPORT
+      case 'S':  {
         codenum = 0;                  // The only valid codenum is 0
         uint8_t digits = 0;
         while (*p++ == '0') digits++; // Count up '0' characters

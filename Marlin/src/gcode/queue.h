@@ -75,7 +75,11 @@ public:
 
     inline void clear() { length = index_r = index_w = 0; }
 
-    void advance_pos(uint8_t &p, const int inc) { if (++p >= BUFSIZE) p = 0; length += inc; }
+    void advance_pos(uint8_t &p, const int inc) {
+      if (++p >= BUFSIZE) p = 0;
+      length += inc;
+      if( length >= BUFSIZE ) length = 0;
+    }
 
     void commit_command(bool skip_ok
       #if HAS_MULTI_SERIAL
