@@ -259,8 +259,10 @@ skew_factor_t Planner::skew_factor; // Initialized by settings.load()
 
   // The feedhold is being abandoned. Free saved block buffer
   void Planner::feedhold_abandon(){
-    free( block_buffer_save );
-    block_buffer_save = NULL;
+    if( block_buffer_save != NULL){
+      free( block_buffer_save );
+      block_buffer_save = NULL;
+    }
   }
 
   void Planner::feed_hold_recalculate_current_block(){

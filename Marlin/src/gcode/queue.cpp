@@ -733,8 +733,10 @@ void GCodeQueue::restore_queue(){
 };
 
 void GCodeQueue::feedhold_abandon(){
-  free( saved_queue );
-  saved_queue = NULL;
+  if( saved_queue != NULL ){
+    free( saved_queue );
+    saved_queue = NULL;
+  }
 }
 
 #endif
