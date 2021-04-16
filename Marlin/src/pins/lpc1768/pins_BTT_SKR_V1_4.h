@@ -178,6 +178,25 @@
 #define TEMP_BED_PIN                    P0_25_A2  // A2 (T2) - (69) - TEMP_BED_PIN
 
 //
+// M3/M4/M5 - Spindle/Laser Control
+//            Use servo pins, if available
+//
+#if HAS_CUTTER && !PIN_EXISTS(SPINDLE_LASER_ENA)
+  #if NUM_SERVOS > 1
+    #if ENABLED(SPINDLE_FEATURE)
+      #error "SPINDLE_FEATURE requires 3 free servo pins."
+    #else
+      #error "LASER_FEATURE requires 3 free servo pins."
+    #endif
+  #endif
+  #define SPINDLE_LASER_ENA_PIN       HEATER_0_PIN  // (6) Pin should have a pullup/pulldown!
+  #define SPINDLE_LASER_PWM_PIN       P2_03  // (4) MUST BE HARDWARE PWM = fan 0
+  #define SPINDLE_DIR_PIN             P2_04  // (5)                      = fan 1
+  #define FAN1_PIN                    P2_05  // Assign these to something
+  #define FAN_PIN                     P2_05
+#endif
+
+//
 // Software SPI pins for TMC2130 stepper drivers
 //
 #if ENABLED(TMC_USE_SW_SPI)

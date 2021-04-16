@@ -24,6 +24,11 @@
 #include "../../module/printcounter.h"
 #include "../../lcd/marlinui.h"
 
+
+#if ENABLED( REALTIME_REPORTING_COMMANDS )
+#include "../../module/motion.h"
+#endif
+
 #include "../../MarlinCore.h" // for startOrResumeJob
 
 /**
@@ -44,6 +49,8 @@ void GcodeSuite::M76() {
  * M77: Stop print timer
  */
 void GcodeSuite::M77() {
+  TERN_( REALTIME_REPORTING_COMMANDS, feedhold_abandon() ) ;
+
   print_job_timer.stop();
 }
 
